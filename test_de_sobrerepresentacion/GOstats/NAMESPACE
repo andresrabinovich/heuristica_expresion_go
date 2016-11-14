@@ -1,0 +1,73 @@
+import(methods)
+importFrom(stats, cor)
+importFrom(stats4, summary)
+
+import(Category)
+import(graph)
+
+importMethodsFrom(AnnotationDbi,
+                  Term,
+                  eapply,
+                  ls,
+                  mget,
+                  nrow,
+                  revmap)
+
+importMethodsFrom(Biobase,
+                  annotation,
+                  exprs,
+                  featureNames)
+
+importFrom(AnnotationDbi,
+           make_eg_to_go_map)
+
+importFrom(AnnotationForge,
+           available.dbschemas)
+importFrom(Biobase,
+           addVigs2WinMenu,
+           subListExtract)
+
+importFrom(RBGL,
+           connectedComp,
+           dijkstra.sp,
+           sp.between)
+
+importFrom(annotate,
+           dropECode,
+           getAnnMap,
+           getOntology)
+
+importFrom(GO.db,
+           GOTERM)
+
+export(compCorrGraph, compGdist,
+       enumPairs, 
+       GOGraph,
+       idx2dimnames, isTriad,
+       makeGOGraph, notConn, oneGOGraph,
+       reduce2Degreek, shortestPath, simLL,
+       simLP, simUI, triadCensus,
+       probeSetSummary)
+
+exportClasses(GOHyperGResult)
+
+exportMethods("hyperGTest",
+              "pvalues",
+              "description",
+              "oddsRatios",
+              "expectedCounts",
+              "htmlReport",
+              "goDag",
+              "geneCounts",
+              "universeCounts",
+              "geneIds",
+              "geneIdUniverse",
+              "universeMappedCount",
+              "geneMappedCount",
+              "annotation",
+              "testName",
+              "summary")
+
+export(termGraphs, 
+       inducedTermGraph, 
+       plotGOTermGraph)
