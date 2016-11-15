@@ -1,24 +1,33 @@
 #seteo parametros HyperG
+#source("http://bioconductor.org/biocLite.R")
+#biocLite(c("GO.db", "GOstats", "ath1121501.db"))
 library(GO.db)
 require(GOstats)
 require(ath1121501.db)
+#biocLite(c("igraph", "GOSemSim", "ggplot2"))
 library(igraph)
 library(GOSemSim)
 library(ggplot2)
+#biocLite(c("grid", "gridExtra", "dendextend"))
 library(grid)
 library(gridExtra)
 library(dendextend)
+#biocLite(c("genefilter", "dynamicTreeCut", "VennDiagram", "STRINGdb"))
+library(genefilter) #Para el filtrado de genes K over A
+library(dynamicTreeCut) #Para clusterizar con dynamic tree cut
+library(VennDiagram)
+library(STRINGdb)
 
-setwd("~/doctorado/programacion/test_de_sobrerepresentacion/")
+setwd("~/doctorado/programacion/heuristica_expresion_go/test_de_sobrerepresentacion/")
 source("librerias.R")
 source("hypertest.R")
 source("similaridad_semantica.R")
 source("hipotesis_nula.R")
-source("~/doctorado/programacion/clustering/clusterizador-paso-1.R")
-setwd("~/doctorado/programacion/test_de_sobrerepresentacion/")
+source("~/doctorado/programacion/heuristica_expresion_go/clustering/clusterizador-paso-1.R")
+setwd("~/doctorado/programacion/heuristica_expresion_go/test_de_sobrerepresentacion/")
 source("correccion_bh.R")
 
-setwd("~/doctorado/programacion/metodo_heuristico/")
+setwd("~/doctorado/programacion/heuristica_expresion_go/metodo_heuristico/")
 
 chip     <- "ath1121501"
 

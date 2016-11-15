@@ -1,5 +1,5 @@
 #Directorio por defecto
-setwd("~/trabajo/heuristica_expresion_go/clustering/")
+setwd("~/doctorado/programacion/heuristica_expresion_go/clustering/")
 
 #Cargamos librerías
 library(genefilter) #Para el filtrado de genes K over A
