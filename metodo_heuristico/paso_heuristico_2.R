@@ -46,7 +46,7 @@ combinar_conjuntos <- function(ontologia, terminos_sobrerepresentados, clus, gen
       nuevos_conjuntos[[j]] <- as.vector(t(unique(subset(ontologia, go_id %in% terminos_sobrerepresentados[clus == lim[j]] & gene_id %in% rownames(genes), "gene_id"))))
     }
   }
-  nuevos_conjuntos[[(j+1)]] <- setdiff(rownames(genes), unique(unlist(nuevos_conjuntos)))
+  nuevos_conjuntos[[(length(nuevos_conjuntos)+1)]] <- setdiff(rownames(genes), unique(unlist(nuevos_conjuntos)))
   if(FALSE){
     for(j in 1:length(lim)){
       a<-cor(t(genes))
@@ -67,7 +67,7 @@ combinar_conjuntos <- function(ontologia, terminos_sobrerepresentados, clus, gen
   return(nuevos_conjuntos)
 }
 
-paso_heuristico_2 <- function(genes, ontologia, arbol, padre){
+paso_heuristico_2 <- function(genes, ontologia, arbol, min_tamano_cluster = 30, min_correlacion_media = 0.7){
   
   distancia             <- as.dist(0.5*(1 - (cor(t(genes)))))
   clusters_jerarquicos  <- hclust(distancia, method = metodo)  
@@ -79,7 +79,7 @@ paso_heuristico_2 <- function(genes, ontologia, arbol, padre){
   #clusters <- cutree(tree = clusters_jerarquicos, h = 0.9)
   #clusters <-cutreeDynamic(clusters_jerarquicos, distM = as.matrix(distancia), cutHeight = 0.75)#minClusterSize = 250)
   
-  print(table(clusters))
+  print(paste("Clusteriando en expresión:", paste(table(clusters), collapse=" ")))
   for(i in 1:max(clusters)){
     #if(mean(as.matrix(distancia)[rownames(genes[clusters == i, ]), rownames(genes[clusters == i, ])][upper.tri(as.matrix(distancia)[rownames(genes[clusters == i, ]), rownames(genes[clusters == i, ])])]) > 0.25){
     #  print(mean(as.matrix(distancia)[rownames(genes[clusters == i, ]), rownames(genes[clusters == i, ])][upper.tri(as.matrix(distancia)[rownames(genes[clusters == i, ]), rownames(genes[clusters == i, ])])]))
@@ -88,27 +88,26 @@ paso_heuristico_2 <- function(genes, ontologia, arbol, padre){
       a<-cor(t(genes))
       b<-rownames(genes[clusters == i, ])
       a<-a[b, b]
-      print(mean(a[upper.tri(a)]))    
+      print(paste("Correlación media del cluster (", nrow(genes[clusters == i, ]), "): ", mean(a[upper.tri(a)]), sep=""))    
     #}    
   }
   
-  for(i in unique(clusters)){
+  for(i in unique(clusters)[1]){
     p                           <- hypertest(rownames(genes)[clusters == i], ontologia=ontologia)
     terminos_sobrerepresentados <- names(p$pvalues[cbh(p$pvalues, 0.05)])
     ic                          <- -log2(p$anotaciones/p$anotaciones["GO:0008150"])
     #descartamos los terminos sobrerepresentados con poco contenido de información
     terminos_sobrerepresentados <- terminos_sobrerepresentados[ic[terminos_sobrerepresentados] > 4]
-    print(length(terminos_sobrerepresentados))
+    print(paste("Terminos sobrerepresentados del cluster", nrow(genes[clusters == i, ]), ":", length(terminos_sobrerepresentados)))
     if(length(terminos_sobrerepresentados) > 1){
       distRes <- 1/(1+similaridad_semantica(ancestros[p$terminos_go][terminos_sobrerepresentados], ic))
     }else{
       distRes <- NA
     }
-    arbol[[length(arbol) + 1]] <- list(genes = rownames(genes)[clusters == i], terminos_sobrerepresentados = terminos_sobrerepresentados, padre = padre, terminado = FALSE)
     terminado <- FALSE
     
     if(TRUE){
-      if(nrow(genes[clusters == i, ]) < 15){
+      if(nrow(genes[clusters == i, ]) < min_tamano_cluster){
         terminado <- TRUE
       }else{
         if(length(terminos_sobrerepresentados) < 2){
@@ -120,37 +119,50 @@ paso_heuristico_2 <- function(genes, ontologia, arbol, padre){
         }else{
           distancia<-distRes
           h<-hclust(as.dist(distancia[terminos_sobrerepresentados, terminos_sobrerepresentados]))
-          plot(h)
+          #plot(h)
           clus<-cutreeDynamic(h, distM = distancia[terminos_sobrerepresentados, terminos_sobrerepresentados], minClusterSize = 3)
           #clus <- cutree(tree=h, h=0.1)
-          print(table(clus))
+          print(paste("Clusteriando en GO y generando nuevos conjuntos de:", paste(table(clus), collapse=" ")))
           #clus<-cutree(tree = h, h = 0.3)
           #Combinamos los grupos que salgan sobrerepresentados
           nuevos_conjuntos<-combinar_conjuntos(ontologia, terminos_sobrerepresentados, clus, genes[clusters == i, ])
+          print(lapply(nuevos_conjuntos, length))
         }
       }
     }else{
-      if(is.null(nrow(genes[clusters == i, ])) || nrow(genes[clusters == i, ]) < 50){
+      if(is.null(nrow(genes[clusters == i, ])) || nrow(genes[clusters == i, ]) < min_tamano_cluster){
         terminado = TRUE
       }
     }
-    arbol[[length(arbol)]]$terminado <- terminado       
     if(!terminado){
-      for(i in 1:length(nuevos_conjuntos)){
-        arbol <- paso_heuristico_2(genes[nuevos_conjuntos[[i]], ], ontologia, arbol, (padre + 1))
+      if(length(terminos_sobrerepresentados) > 1){
+        print("Procesando los nuevos conjuntos")
+        for(i in 1:length(nuevos_conjuntos)){
+          if(length(nuevos_conjuntos[[i]]) > min_tamano_cluster){
+            print(paste("Procesando el conjunto:", length(nuevos_conjuntos[[i]])))
+            arbol <- paso_heuristico_2(genes[nuevos_conjuntos[[i]], ], ontologia, arbol)
+          }else{
+            arbol[[length(arbol) + 1]] <- nuevos_conjuntos[[i]] 
+          }
+        }
+      }else{
+        print(paste("No se generaron nuevos conjuntos a partir de GO, se va a procesar el padre:", nrow(genes[clusters == i, ])))
+        arbol <- paso_heuristico_2(genes[clusters == i, ], ontologia, arbol)
       }
+    }else{
+      arbol[[length(arbol) + 1]] <- rownames(genes[clusters == i, ])
     }
   }
   return(arbol)
   #arbol[[length(arbol)]]$hermano   <- (length(arbol) - 1)
   #arbol[[length(arbol)-1]]$hermano <- length(arbol)
 }
-ph<-paso_heuristico_2(genes, ontologia, arbol = list(), 1)
+ph<-paso_heuristico_2(genes, ontologia, arbol = list())
 
-for(i in 1:length(ph)){
-  if(ph[[i]]$terminado == TRUE){
-    cat(i, length(ph[[i]]$genes), ph[[i]]$padre, ph[[i]]$terminado, "\n")
-  }
-}
-
-cat(ph[[18]]$genes, sep="\n")
+#for(i in 1:length(ph)){
+#  if(ph[[i]]$terminado == TRUE){
+#    cat(i, length(ph[[i]]$genes), ph[[i]]$padre, ph[[i]]$terminado, "\n")
+#  }
+#}
+#
+#cat(ph[[18]]$genes, sep="\n")
